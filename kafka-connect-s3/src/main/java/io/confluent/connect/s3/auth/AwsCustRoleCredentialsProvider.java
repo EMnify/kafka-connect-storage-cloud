@@ -19,6 +19,7 @@ package io.confluent.connect.s3.auth;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -31,11 +32,13 @@ import java.util.Map;
  * temporary, short-lived session to use for authentication.  This credentials provider does not
  * support refreshing the credentials in a background thread.
  */
-public class AwsAssumeRoleCredentialsProvider implements AWSCredentialsProvider, Configurable {
+public class AwsCustRoleCredentialsProvider implements AWSCredentialsProvider, Configurable {
 
   public static final String ROLE_EXTERNAL_ID_CONFIG = "sts.role.external.id";
   public static final String ROLE_ARN_CONFIG = "sts.role.arn";
+  public static final String BASE_ROLE_ARN_CONFIG = "sts.base.role.arn";
   public static final String ROLE_SESSION_NAME_CONFIG = "sts.role.session.name";
+  public static final String BASE_ROLE_SESSION_NAME_CONFIG = "sts.base.session.name";
 
   private static final ConfigDef STS_CONFIG_DEF = new ConfigDef()
       .define(
@@ -53,11 +56,25 @@ public class AwsAssumeRoleCredentialsProvider implements AWSCredentialsProvider,
           ConfigDef.Type.STRING,
           ConfigDef.Importance.HIGH,
           "Role session name to use when starting a session"
+      ).define(
+          BASE_ROLE_SESSION_NAME_CONFIG,
+          ConfigDef.Type.STRING,
+          "",
+          ConfigDef.Importance.MEDIUM,
+          "Base Role session name to use when starting a session"
+      ).define(
+          BASE_ROLE_ARN_CONFIG,
+          ConfigDef.Type.STRING,
+          "",
+          ConfigDef.Importance.MEDIUM,
+          "Base Role ARN to use when starting a session"
       );
 
+  private String baseRoleArn;
   private String roleArn;
   private String roleExternalId;
   private String roleSessionName;
+  private String baseRoleSessionName;
 
   @Override
   public void configure(Map<String, ?> configs) {
@@ -65,15 +82,30 @@ public class AwsAssumeRoleCredentialsProvider implements AWSCredentialsProvider,
     roleArn = config.getString(ROLE_ARN_CONFIG);
     roleExternalId = config.getString(ROLE_EXTERNAL_ID_CONFIG);
     roleSessionName = config.getString(ROLE_SESSION_NAME_CONFIG);
+    baseRoleArn = config.getString(BASE_ROLE_ARN_CONFIG);
+    baseRoleSessionName = config.getString(BASE_ROLE_SESSION_NAME_CONFIG);
   }
 
   @Override
   public AWSCredentials getCredentials() {
     return new STSAssumeRoleSessionCredentialsProvider.Builder(roleArn, roleSessionName)
-        .withStsClient(AWSSecurityTokenServiceClientBuilder.defaultClient())
+        .withStsClient(getBaseSecurityTokenService())
         .withExternalId(roleExternalId)
         .build()
         .getCredentials();
+  }
+
+  public AWSSecurityTokenService getBaseSecurityTokenService() {
+    if (this.baseRoleArn != null && !this.baseRoleArn.isEmpty()) {
+      AWSCredentialsProvider baseCredentials =
+              new STSAssumeRoleSessionCredentialsProvider.Builder(baseRoleArn, baseRoleSessionName)
+                .withStsClient(AWSSecurityTokenServiceClientBuilder.defaultClient())
+                .build();
+      return AWSSecurityTokenServiceClientBuilder.standard()
+              .withCredentials(baseCredentials).build();
+    } else {
+      return AWSSecurityTokenServiceClientBuilder.defaultClient();
+    }
   }
 
   @Override

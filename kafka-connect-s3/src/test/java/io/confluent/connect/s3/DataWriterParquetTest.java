@@ -86,6 +86,7 @@ public class DataWriterParquetTest extends TestWithMockedS3 {
     return props;
   }
 
+  @SuppressWarnings("deprecation")
   public void setUp() throws Exception {
     super.setUp();
 
@@ -667,6 +668,7 @@ public class DataWriterParquetTest extends TestWithMockedS3 {
     verifyFileListing(expectedFiles);
   }
 
+  @SuppressWarnings("deprecation")
   protected void verifyFileListing(List<String> expectedFiles) {
     List<S3ObjectSummary> summaries = listObjects(S3_TEST_BUCKET_NAME, null, s3);
     List<String> actualFiles = new ArrayList<>();

@@ -123,6 +123,7 @@ public class S3SinkConnectorConfig extends StorageSinkConnectorConfig {
   public static final String COMPRESSION_TYPE_CONFIG = "s3.compression.type";
   public static final String COMPRESSION_TYPE_DEFAULT = "none";
 
+
   public static final String COMPRESSION_LEVEL_CONFIG = "s3.compression.level";
   public static final int COMPRESSION_LEVEL_DEFAULT = Deflater.DEFAULT_COMPRESSION;
   private static final CompressionLevelValidator COMPRESSION_LEVEL_VALIDATOR =
@@ -153,6 +154,20 @@ public class S3SinkConnectorConfig extends StorageSinkConnectorConfig {
 
   public static final String BEHAVIOR_ON_NULL_VALUES_CONFIG = "behavior.on.null.values";
   public static final String BEHAVIOR_ON_NULL_VALUES_DEFAULT = BehaviorOnNullValues.FAIL.toString();
+
+  public static final String S3_FILENAME_PATTERN_CONFIG = "s3.path.filename.pattern";
+  public static final String S3_FILENAME_PATTERN_DEFAULT = "";
+
+  public static final String S3_FILENAME_DATE_FORMAT_CONFIG = "s3.path.filename.date.format";
+  public static final String S3_FILENAME_DATE_FORMAT_DEFAULT = "YYYYMMDD_HHmmSS";
+
+
+  public static final String SCHEMA_MAPPING_CONFIG = "s3.schema.name.mapping";
+  public static final String SCHEMA_MAPPING_DOC =
+          "Mapping of schema name to value for $SCHEMA_NAME in path. Name and mapped name is "
+            + "delimited by \":\". Multiple entries can be specified delimited by comma (',').";
+  public static final String SCHEMA_MAPPING_DEFAULT = "";
+  public static final String SCHEMA_MAPPING_DISPLAY = "Schema name mapping";
 
   /**
    * Maximum back-off time when retrying failed requests.
@@ -652,6 +667,18 @@ public class S3SinkConnectorConfig extends StorageSinkConnectorConfig {
       );
 
       configDef.define(
+              S3_FILENAME_PATTERN_CONFIG,
+              Type.STRING,
+              S3_FILENAME_PATTERN_DEFAULT,
+              Importance.LOW,
+              "Specifies filename pattern (use %t for topic, %p for partition and %o for offset",
+              group,
+              ++orderInGroup,
+              Width.SHORT,
+              "Filename pattern"
+      );
+
+      configDef.define(
           S3_PATH_STYLE_ACCESS_ENABLED_CONFIG,
           Type.BOOLEAN,
           S3_PATH_STYLE_ACCESS_ENABLED_DEFAULT,
@@ -663,6 +690,26 @@ public class S3SinkConnectorConfig extends StorageSinkConnectorConfig {
           Width.SHORT,
           "Enable Path Style Access to S3"
       );
+
+      configDef.define(SCHEMA_MAPPING_CONFIG,
+              Type.LIST,
+              SCHEMA_MAPPING_DEFAULT,
+              Importance.LOW,
+              SCHEMA_MAPPING_DOC,
+              group,
+              ++orderInGroup,
+              Width.LONG,
+              SCHEMA_MAPPING_DISPLAY);
+
+      configDef.define(S3_FILENAME_DATE_FORMAT_CONFIG,
+              Type.STRING,
+              S3_FILENAME_DATE_FORMAT_DEFAULT,
+              Importance.LOW,
+              "Specifies filename date format",
+              group,
+              ++orderInGroup,
+              Width.LONG,
+              "Filename date format");
     }
     return configDef;
   }
